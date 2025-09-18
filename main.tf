@@ -1,4 +1,4 @@
-_**Advanced Project: Multi-Cloud Web Application**_
+_**Beginner Project: Static Website on AWS S3**_
 
 _**main.tf**_
 
@@ -8,59 +8,44 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# Configure the Azure provider
-provider "azurerm" {
-  features {}
-}
-
-# Create a resource group in Azure
-resource "azurerm_resource_group" "main" {
-  name     = "my-terraform-rg"
-  location = "East US"
-}
-
-# Create a virtual network in Azure
-resource "azurerm_virtual_network" "main" {
-  name                = "my-terraform-vnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-}
-
-# Create a subnet in Azure
-resource "azurerm_subnet" "main" {
-  name                 = "my-terraform-subnet"
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
-
-# Create a web server in AWS
-resource "aws_instance" "web" {
-  ami           = "ami-0c55b159cbfafe1f0" # Ubuntu 20.04 LTS
-  instance_type = "t2.micro"
+# Create an S3 bucket for the static website
+resource "aws_s3_bucket" "website" {
+  bucket = "my-terraform-static-website-example"
 
   tags = {
-    Name = "My Multi-Cloud Web Server"
+    Name        = "My Static Website"
+    Environment = "Dev"
   }
 }
 
-# Create a database in Azure
-resource "azurerm_mysql_server" "main" {
-  name                = "my-terraform-mysql-server"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+# Configure the S3 bucket for website hosting
+resource "aws_s3_bucket_website_configuration" "website_config" {
+  bucket = aws_s3_bucket.website.id
 
-  sku_name = "B_Gen5_1"
+  index_document {
+    suffix = "index.html"
+  }
 
-  storage_mb                   = 5120
-  backup_retention_days        = 7
-  geo_redundant_backup_enabled = false
-  auto_grow_enabled            = true
+  error_document {
+    key = "error.html"
+  }
+}
 
-  administrator_login          = "mysqladmin"
-  administrator_login_password = "Password1234!"
-  version                      = "8.0"
-  ssl_enforcement_enabled      = true
+# Upload the index.html file to the S3 bucket
+resource "aws_s3_object" "index" {
+  bucket = aws_s3_bucket.website.id
+  key    = "index.html"
+  source = "index.html"
+  acl    = "public-read"
+  content_type = "text/html"
+}
+
+# Upload the error.html file to the S3 bucket
+resource "aws_s3_object" "error" {
+  bucket = aws_s3_bucket.website.id
+  key    = "error.html"
+  source = "error.html"
+  acl    = "public-read"
+  content_type = "text/html"
 }
 ```
